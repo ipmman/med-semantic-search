@@ -1,0 +1,18 @@
+accelerate==0.30.1
+faiss-gpu-cu12==1.8.0.2
+# pyserini>=0.21.0
+ir-datasets>=0.5.6
+ir-measures>=0.3.7
+sentence-transformers>=3.0.1
+transformers>=4.41.0
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+pydantic>=2.7.0
+python-dotenv>=1.0.1
+numpy<2,>=1.26.0
+pandas>=2.2.0
+pyarrow>=16.0.0
+tqdm>=4.66.0
+requests>=2.32.0
+lz4>=4.3.3
+zstandard>=0.22.0

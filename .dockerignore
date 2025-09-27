@@ -1,0 +1,17 @@
+.venv
+.cursor
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+dist/
+build/
+.ipynb_checkpoints/
+artifacts/*
+data/*
+!.gitkeep
+tmp.*
+temp.*
+.env
+logs/

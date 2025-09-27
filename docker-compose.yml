@@ -1,0 +1,29 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: med-semantic-search-cds:cu124
+    container_name: med-semantic-search-app
+    environment:
+      - TORCH_HOME=/data/.cache/torch
+      - KERAS_HOME=/data/.cache/keras
+      - HF_HOME=/data/.cache/huggingface
+    env_file:
+      - .env
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/workspace
+      - ./data/.ir_datasets:/root/.ir_datasets
+      - /data/.cache:/data/.cache
+    working_dir: /workspace
+    restart: unless-stopped
+    command: ["/bin/bash"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all  # or device_ids: ["0", "1"]
+              capabilities: [gpu]
