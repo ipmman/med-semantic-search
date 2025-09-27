@@ -1,10 +1,10 @@
 ## 臨床檢索系統（公開展示版）
 
-重要說明：此公開儲存庫 (repository) 旨在展示我們內部醫院搜尋引擎的核心流程，包含查詢強化 (query enhancement)、密集檢索 (dense retrieval) 及重排序 (reranking)，並使用公開資料集進行實作。
+重要說明：此公開儲存庫 (repository) 旨在展示搜尋引擎的核心流程，包含查詢強化 (query enhancement)、密集檢索 (dense retrieval) 及重排序 (reranking)，並使用公開資料集進行實作。
 
-為保護機密資訊，本儲存庫不包含任何醫院的專有程式碼、內部資料或可重建的產物 (reconstructable artifacts)。其中，數個關鍵程式碼已進行重構與調整。因此，這是一個獨立的程式碼庫，與我們院內實際運行的版本並不完全相同。
+為保護機密資訊，本儲存庫不包含任何醫院的專有程式碼、內部資料或可重建的產物 (reconstructable artifacts)。其中，數個關鍵程式碼已進行重構與調整。因此，這是一個獨立的程式碼庫，與醫院內實際運行的版本並不完全相同。
 
-考量院內資料的敏感性而無法對外共享，且內部評估仰賴醫師的實測，而非標準化的公開測試集，本專案因此改用官方的公開替代資料集進行可重現的量化評測（資料集：PubMed Central TREC CDS 2016；參考 [ir-datasets — pmc/v2/trec-cds-2016](https://ir-datasets.com/pmc.html)）。此專案使用 1,000 筆樣本語料用於快速重現；完整實驗則會在完整的公開資料集上執行，並以表格呈現評測指標。
+考量到醫院資料的高度敏感性，且檢索效果的評估依賴醫師實測而非標準化測試集，本專案改採官方的公開資料集，以進行可重現的量化評估（資料集：PubMed Central TREC CDS 2016；參考 [ir-datasets — pmc/v2/trec-cds-2016](https://ir-datasets.com/pmc.html)）。此專案使用 1,000 筆樣本語料用於快速重現；完整實驗則會在完整的公開資料集上執行，並以表格呈現評測指標。
 
 
 ### 公開替代資料集
@@ -19,13 +19,13 @@
 
 ### 系統架構與流程（檢索流程與院內一致）
 
-端到端流程：
+流程：
 
-1. Enhance query（可選，`ENHANCE_QUERY` 控制）：透過 Ollama 的 `/api/chat` 端點改寫使用者查詢，以提升語義檢索效果。（例如，一個簡單的查詢「搜尋所有 HIV 腦病變的個案」，會被轉換成一個完整的、專家級的查詢：「搜尋腦部 MRI 報告中，與 HIV 相關腦部病灶相符之影像所見（Findings），包括基底核病灶、機會性感染（例如：弓形蟲病、進行性多灶性白質腦病 PML）、HIV 腦病變，或中樞神經系統淋巴瘤。」）
+1. 查詢增強（可選，`ENHANCE_QUERY` 控制）：透過 Ollama 的 `/api/chat` 端點改寫使用者查詢，以提升語義檢索效果。例如，一個簡單的查詢「搜尋所有 HIV 腦病變的個案」，會被轉換成一個完整的、專家級的查詢：「搜尋腦部 MRI 報告中，與 HIV 相關腦部病灶相符之影像所見（Findings），包括基底核病灶、機會性感染（例如：弓形蟲病、進行性多灶性白質腦病 PML）、HIV 腦病變，或中樞神經系統淋巴瘤。」
 
-2. Dense 檢索：以 Hugging Face 模型產生文件向量並建立 FAISS 索引，對查詢向量進行相似度檢索（cosine similarity），取得 top-k 候選文件。
+2. 密集檢索：以 Hugging Face 模型產生文件向量，建立 FAISS 索引，並利用查詢向量進行餘弦相似度搜尋，取得 top-k 候選文件。
 
-3. Rerank：以交叉編碼器對 top-k 候選文件進行重排序，得到最終排序。
+3. 重排序：以交叉編碼器對 top-k 候選文件進行重排序，得到最終排序。
 
 <div align="center">
 
@@ -68,39 +68,70 @@ graph TD
 ```
 
 
-### 安裝（擇一）
+### 快速入門
 
-Python 版本：3.11.13
+本節將引導您完成專案的設定與執行。請選擇 Pip 或 Docker 其中一種方式。
 
-CUDA 版本：12.4
+**先決條件**
+- Python 3.11.13
+- CUDA 12.4（GPU 支援）。請確保主機上已安裝相容的 CUDA 驅動程式。
 
-方案 A — Pip 安裝：
+#### 方案 A：Pip 安裝
 
-```bash
-python -V   # 需為 3.11.13
-pip install -r requirements.txt
-```
+1.  **設定環境變數**
 
-方案 B — Docker（Compose）【推薦】：
+    首先，複製環境變數範例檔。您可以在 `.env` 檔案中自訂模型名稱或檔案路徑等變數。
+    ```bash
+    cp .env.example .env
+    ```
 
-快速開始（於專案根目錄執行）：
-```bash
-cp .env.example .env  # 複製環境檔（依需求調整內容）
+2.  **安裝依賴套件**
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-docker compose build
-docker compose run --rm app python scripts/main.py -v
-```
+3.  **執行流程**
+    ```bash
+    # 標準執行
+    python scripts/main.py
 
-說明：`Dockerfile` 位於 `docker/`。更多操作請見「容器化環境」章節。
+    # 執行並顯示詳細日誌
+    python scripts/main.py -v
+    ```
 
-注意：
+#### 方案 B：Docker（推薦）
 
-- 若使用 GPU 與大型模型，請確認主機 CUDA 驅動相容。
-- `faiss-gpu` 已在 `requirements.txt` 指定。
+此方法使用 Docker Compose 管理環境與依賴套件。更多選項請參閱「容器化環境」一節。
+
+1.  **設定環境變數**
+
+    首先，複製環境變數範例檔，Docker Compose 會自動載入此檔案。
+    ```bash
+    cp .env.example .env
+    ```
+
+2.  **建置並執行容器**
+
+    此指令會建置映像檔並執行主腳本。`--rm` 旗標會在執行完畢後清除容器。
+    ```bash
+    docker compose build
+    docker compose run --rm app python scripts/main.py
+    ```
+    若要以詳細模式執行：
+    ```bash
+    docker compose run --rm app python scripts/main.py -v
+    ```
+
+### 設定說明
+
+#### 日誌記錄行為
+- 預設（不帶旗標）：等級為 INFO；僅輸出到 console。
+- 使用 `-q`（quiet）：等級為 WARNING（僅顯示 WARNING/ERROR）；僅輸出到 console。
+- 使用 `-v`（verbose）：等級為 DEBUG；輸出到 console，並同時寫入 `./logs/cds2016_YYYYMMDD_HHMMSS.log`。
 
 #### FAISS 套件：GPU/CPU 切換
 
-預設為 GPU（`faiss-gpu-cu12`）由 `requirements.txt` 指定。
+預設透過 `requirements.txt` 安裝 GPU 版本 (`faiss-gpu-cu12`)。
 
 - 僅 CPU 環境：
 
@@ -109,35 +140,14 @@ pip uninstall -y faiss-gpu-cu12 faiss-gpu
 pip install -U faiss-cpu
 ```
 
-- 切回 GPU：
+- 切換回 GPU：
 
 ```bash
 pip uninstall -y faiss-cpu
 pip install -U faiss-gpu-cu12==1.8.0.2
 ```
 
-說明：`faiss-gpu` 在無可用 CUDA/GPU 時不會自動回落到 CPU，請確保 NVIDIA 驅動與對應 CUDA 版本可用。
-
-
-### 快速開始
-
-預設資料集：`pmc/v2/trec-cds-2016`
-
-最小化執行：
-```bash
-python scripts/main.py
-```
-
-顯示詳細日誌：
-
-```bash
-python scripts/main.py -v
-```
-
-日誌輸出行為：
-- 預設（不帶旗標）：等級為 INFO；僅輸出到 console。
-- 使用 `-q`（quiet）：等級為 WARNING（僅顯示 WARNING/ERROR）；僅輸出到 console。
-- 使用 `-v`（verbose）：等級為 DEBUG；輸出到 console，並同時寫入 `./logs/cds2016_YYYYMMDD_HHMMSS.log`。
+說明：`faiss-gpu` 在無可用 CUDA/GPU 時不會自動回落到 CPU，請確保 NVIDIA 驅動與指定的 CUDA 版本相容。
 
 環境變數請透過 .env 設定（完整鍵值與預設值請參考 .env.example）：
 
@@ -172,25 +182,20 @@ ENHANCE_MODEL=medgemma-27b-text-it:latest
 
 ### GPU 加速（NVIDIA）
 
-此專案透過 Hugging Face Accelerate 的 `device_map=auto` 在嵌入與重排序模型上進行 GPU 分片；FAISS 檢索目前預設走單卡。
+此專案透過 Hugging Face Accelerate 在嵌入與重排序模型上進行 GPU 分片；FAISS 檢索預設使用單張 GPU。
 
 需求：
 - 安裝與 PyTorch/FAISS 版本相容的 GPU 工具包與驅動程式（CUDA）
 - 至少一張可見的 GPU（可透過 `nvidia-smi` 檢查）
 
 運作方式：
-- 當 `DEVICE` 設為 `cuda` 或 `gpu` 且系統可用 CUDA，並且已安裝 Accelerate 時，程式碼會自動加上 `device_map=auto`，使嵌入與重排序模型嘗試跨 GPU 分片；否則不設定 `device_map`（停用分片/卸載），並直接將模型移動到指定裝置。
-- FAISS：索引建置器會嘗試將 IP 索引置於單一 GPU（ID 0）上。若發生 OOM，則會回退至 CPU。此處未啟用 Multi-GPU FAISS 以簡化展示。
-
-
+- 當 `DEVICE` 設為 `cuda` 或 `gpu` 並且已安裝 Accelerate 時，程式碼會自動設置 `device_map=auto`，使嵌入與重排序模型嘗試跨 GPU 分片；否則不使用 `device_map`（停用分片/卸載），並直接將模型移動到指定裝置。
+- 預設以單張 GPU 建立 FAISS 索引；若記憶體不足（OOM），將自動回退至 CPU。為簡化示範，未啟用多張 GPU。
 
 注意：
-
-- 若未安裝 Accelerate，分片功能會自動停用；模型將使用單一裝置。
-- 若遇到 Flash Attention 相關錯誤，載入器會自動在不使用 FA2 的情況下重試。
-- 大型模型：建議使用支援 BF16 的 GPU，否則回退至 FP16。
-- 重排序是最耗費資源的階段。建議從較小的 `RERANK_BATCH` 開始，再逐步調高。
-- FAISS OOM：程式碼會回退至 CPU。或者，可在初步開發階段降低 `MAX_DOCS`。
+- 若載入過程中發生 Flash Attention 2 相關錯誤，系統將會自動停用此功能並重新嘗試。
+- 針對大型模型，建議使用支援 BF16 的 GPU 以獲得最佳效能；若不支援，系統將自動回退至 FP16。
+- 重排序是最耗費資源的階段，建議從較小的 `RERANK_BATCH` 開始，再逐步調高。
 
 
 ### 容器化環境（Docker & Compose）
@@ -248,7 +253,7 @@ deploy:
 
 ### 評測與結果
 
-CLI 會輸出各方法（如 Dense Search、Rerank）的評測分數。在實驗中，比較了多個重排序模型（包含 `BAAI/bge-reranker-v2-gemma`、`ncbi/MedCPT-Cross-Encoder` 與 `Qwen/Qwen3-Reranker-8B`），最終使用表現最佳的 `BAAI/bge-reranker-v2-gemma`。
+命令列工具（CLI）會輸出各方法（如 Dense Search、Rerank）的評測分數。在實驗中，比較了多個重排序模型，包含 `BAAI/bge-reranker-v2-gemma`、`ncbi/MedCPT-Cross-Encoder` 與 `Qwen/Qwen3-Reranker-8B`，最終使用表現最佳的 `BAAI/bge-reranker-v2-gemma`。
 
 #### 結果
 
@@ -276,7 +281,7 @@ CLI 會輸出各方法（如 Dense Search、Rerank）的評測分數。在實驗
 ### TODO（未來工作）
 
 - **整合 BM25 檢索**：
-  - 除了現有的 Dense（向量）檢索，將整合 BM25（關鍵字）檢索作為另一路徑。目前程式碼已包含 `pyserini` 的基本介面，但尚未提供索引建立流程。
+  - 除了現有的向量式 Dense 檢索，將再整合以關鍵字為主的 BM25 檢索做為另一條路徑。目前程式碼已包含 `pyserini` 的基本介面，但尚未提供索引建立流程。
 
 - **實現 RRF (Reciprocal Rank Fusion) 混合排名**：
   - 開發 RRF 融合機制，將來自多個來源（如：Dense Search、BM25，以及其查詢增強版本）的排序結果，合併為單一、更穩健的排名。
@@ -290,9 +295,6 @@ CLI 會輸出各方法（如 Dense Search、Rerank）的評測分數。在實驗
 
 ### 參考
 
-- ir-datasets: PubMed Central (TREC CDS) — `pmc/v2/trec-cds-2016`
+- PubMed Central (TREC CDS) — `pmc/v2/trec-cds-2016`
   - 連結：[ir-datasets — pmc/v2/trec-cds-2016](https://ir-datasets.com/pmc.html)
-
-
-
 
