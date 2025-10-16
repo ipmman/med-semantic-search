@@ -1,0 +1,32 @@
+# 1. Version Control & Secrets
+.git
+.gitignore
+.env
+
+# 2. Docker Configuration
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# 3. Python Environment
+.venv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 4. IDE & Editor
+.cursor
+.ipynb_checkpoints/
+
+# 5. Data & Logs
+*.log
+logs/
+data/*
+!.gitkeep
+
+# 6. Build Artifacts & Temporary Files
+dist/
+build/
+tmp.*
+temp.*

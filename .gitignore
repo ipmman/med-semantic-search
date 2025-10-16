@@ -1,0 +1,25 @@
+# 1. Security & Secrets
+.env
+
+# 2. Python Environment
+.venv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 3. IDE & Editor
+.cursor
+.ipynb_checkpoints/
+
+# 4. Data & Logs
+*.log
+logs/
+data/*
+!.gitkeep
+
+# 5. Build Artifacts & Temporary Files
+dist/
+build/
+tmp.*
+temp.*
